@@ -1123,31 +1123,39 @@ void BitcoinGUI::updateMintingIcon()
     }
     else if (nLastCoinStakeSearchInterval)
     {
-        uint64 nEstimateTime = nStakeTargetSpacing * nNetworkWeight / nWeight / 10;
-		
-		uint64 nEstimateDays = nEstimateTime / (60 * 60 * 24);
-		if(nEstimateDays > 1)
-		{
-			nWeight = qMax(nAmount, nWeight);
-			nEstimateTime = nStakeTargetSpacing * nNetworkWeight / nWeight / 10;
-		}
+        float probability = 0.0f, probability2 = 1.0f;
+        int hours;
+        printf("amount: %ld nw %ld\n", (long)nAmount, (long)nNetworkWeight);
+        for (hours = 1; ; hours++) {
+            probability2 *= 1 - (hours - 1) * nAmount * 3600 / nNetworkWeight;
+            probability += hours * probability2;
+            if (probability > 0.5f * nNetworkWeight / nAmount / 3600) {
+                if (hours == 1 && probability > 0.75f * nNetworkWeight / nAmount / 3600)
+                    hours = 0;
+                break;
+            }
+        }
 
         QString text;
-        if (nEstimateTime < 60)
+        if (hours == 0)
         {
-            text = tr("%n second(s)", "", nEstimateTime);
+            text = tr("less than an hour");
         }
-        else if (nEstimateTime < 60*60)
+        else if (hours == 1)
         {
-            text = tr("%n minute(s)", "", nEstimateTime/60);
+            text = tr("an hour");
         }
-        else if (nEstimateTime < 24*60*60)
+        else if (hours < 24)
         {
-            text = tr("%n hour(s)", "", nEstimateTime/(60*60));
+            text = tr("%n hours", "", hours);
+        }
+        else if (hours < 48)
+        {
+            text = tr("a day");
         }
         else
         {
-            text = tr("%n day(s)", "", nEstimateTime/(60*60*24));
+            text = tr("%n days", "", (int)(hours / 24));
         }
 
         labelMintingIcon->setEnabled(true);
